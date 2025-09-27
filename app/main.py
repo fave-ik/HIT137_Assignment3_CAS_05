@@ -1,12 +1,12 @@
 from tkinter import Tk
 from app.gui import App
-from app.controllers import DummyController
+from app.controllers import Controller
 
 def main():
     root = Tk()
     root.title("HIT137 Assignment 3 — Tkinter + Hugging Face (Group)")
     root.geometry("940x600")
-    controller = DummyController()  # will be replaced by real controller later
+    controller = Controller()
     App(root, controller=controller)
     root.mainloop()
 
