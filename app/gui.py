@@ -122,7 +122,6 @@ class App(ttk.Frame):
             "• Polymorphism: all models implement run(input); GUI/Controller call run() without caring which model\n"
             "• Method Overriding: preprocess()/postprocess() overridden in each concrete model\n"
             "• Multiple Decorators: @timed and @log_call wrap run() to log and measure elapsed ms\n"
-            "• Separation of Concerns (MVC-ish): gui.py = View, controllers.py = Controller, model_*.py = Model\n"
         )
         
         self.oop_label = ttk.Label(
