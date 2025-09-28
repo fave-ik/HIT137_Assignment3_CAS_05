@@ -144,8 +144,27 @@ class App(ttk.Frame):
             messagebox.showerror("Error", str(e)); self._hint("Error occurred.")
 
     def _display_output(self, result_obj):
-        self.output_box.delete("1.0", "end")
-        self.output_box.insert("1.0", f"Result:\n{result_obj.get('result')}\n\nElapsed: {result_obj.get('elapsed_ms', 0)} ms")
+    self.output_box.delete("1.0", "end")
+    result = result_obj.get("result")
+    elapsed = result_obj.get("elapsed_ms", 0)
+
+    # formatting for common HF outputs
+    text_lines = ["Result:"]
+    if isinstance(result, list) and result and isinstance(result[0], dict):
+        # e.g. [{'label': 'POSITIVE', 'score': 0.99}, ...]
+        for r in result[:5]:
+            label = r.get("label", "-")
+            score = r.get("score", 0.0)
+            text_lines.append(f"{label}: {score:.4f}")
+    elif isinstance(result, dict) and "label" in result:
+        text_lines.append(f"{result.get('label', '-')}: {result.get('score', 0.0):.4f}")
+    else:
+        text_lines.append(str(result))
+
+    text_lines.append("")
+    text_lines.append(f"Elapsed: {elapsed} ms")
+    self.output_box.insert("1.0", "\n".join(text_lines))
+
 
     def _update_model_info(self):
         info = self.controller.model_info(self.task_var.get())
