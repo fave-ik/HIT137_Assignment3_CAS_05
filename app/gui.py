@@ -116,16 +116,13 @@ class App(ttk.Frame):
         ttk.Label(right_info, text="OOP Concepts Explanation", font=("", 10, "bold")).pack(anchor="w")
 
         oop_text = (
-            "• Where Multiple Inheritance is used: "
-            "model_text.TextClassifier(ModelInfoMixin, ModelBase)\n"
-            "• Why Encapsulation was applied: "
-            "private attrs (_pipe, _name, _task) in models; Controller exposes only public methods\n"
-            "• How Polymorphism & Method Overriding are shown: "
-            "all models implement run(); TextClassifier overrides preprocess()/postprocess()\n"
-            "• Where Multiple Decorators are applied: "
-            "@timed and @log_call wrap run() to record elapsed ms and log calls\n"
-            "• Separation of Concerns (MVC-ish): "
-            "gui.py = View, controllers.py = Controller, model_*.py = Model"
+            "• Multiple Inheritance: model_text.TextClassifier / model_image.ImageClassifier "
+            "inherit ModelInfoMixin and ModelBase\n"
+            "• Encapsulation: private attrs (_pipe, _name, _task) in models; Controller exposes only public methods\n"
+            "• Polymorphism: all models implement run(input); GUI/Controller call run() without caring which model\n"
+            "• Method Overriding: preprocess()/postprocess() overridden in each concrete model\n"
+            "• Multiple Decorators: @timed and @log_call wrap run() to log and measure elapsed ms\n"
+            "• Separation of Concerns (MVC-ish): gui.py = View, controllers.py = Controller, model_*.py = Model\n"
         )
         
         self.oop_label = ttk.Label(
