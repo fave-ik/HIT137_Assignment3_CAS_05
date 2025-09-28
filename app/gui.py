@@ -7,98 +7,169 @@ class App(ttk.Frame):
         self.master = master
         self.controller = controller
         self.pack(fill="both", expand=True)
+
+        self.task_var = tk.StringVar(value="Text Classification")
+        self.input_type = tk.StringVar(value="Text")   # radios in “User Input Section”
+        self.image_path_var = tk.StringVar()
+        self.status_var = tk.StringVar(value="Ready")
+
         self._build_menu()
         self._build_layout()
+        self._update_model_info()
 
+    # ------------------- UI -------------------
     def _build_menu(self):
         menubar = tk.Menu(self.master)
         self.master.config(menu=menubar)
         help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(label="Model Info", command=self._show_model_info)
-        help_menu.add_command(label="OOP Explanations", command=self._show_oop_info)
-        help_menu.add_separator()
         help_menu.add_command(label="About", command=lambda: messagebox.showinfo(
             "About", "HIT137 Assignment 3 — Tkinter + Hugging Face"))
         menubar.add_cascade(label="Help", menu=help_menu)
 
     def _build_layout(self):
-        top = ttk.Frame(self); top.pack(fill="x", pady=(0, 8))
-        ttk.Label(top, text="Select Task:").pack(side="left")
-        self.task_var = tk.StringVar(value="Text Classification")
-        task_box = ttk.Combobox(
-            top, textvariable=self.task_var, state="readonly",
-            values=["Text Classification", "Image Classification"]
-        )
+        # Top: Model Selection row
+        row = ttk.Frame(self); row.pack(fill="x", pady=(0,8))
+        ttk.Label(row, text="Model Selection:").pack(side="left")
+        task_box = ttk.Combobox(row, textvariable=self.task_var, state="readonly",
+                                values=["Text Classification", "Image Classification"], width=22)
         task_box.pack(side="left", padx=8)
-        ttk.Button(top, text="Clear", command=self._on_clear).pack(side="right")
+        task_box.bind("<<ComboboxSelected>>", lambda e: self._on_task_change())
+        ttk.Button(row, text="Load Model", command=self._on_load_model).pack(side="left", padx=(6,0))
+        ttk.Button(row, text="Clear", command=self._on_clear).pack(side="right")
 
-        self.input_frame = ttk.LabelFrame(self, text="Input"); self.input_frame.pack(fill="x", pady=4)
-        self.text_input = tk.Text(self.input_frame, height=5); self.text_input.pack(fill="x", padx=8, pady=8)
+        # Middle: two columns (User Input Section | Model Output Section)
+        middle = ttk.Frame(self); middle.pack(fill="both", expand=True)
 
-        img_row = ttk.Frame(self.input_frame); img_row.pack(fill="x", padx=8, pady=(0,8))
+        # --- Left: User Input Section
+        left = ttk.LabelFrame(middle, text="User Input Section", padding=8)
+        left.pack(side="left", fill="both", expand=True, padx=(0,6))
+
+        radios = ttk.Frame(left); radios.pack(anchor="w", pady=(0,6))
+        ttk.Radiobutton(radios, text="Text", value="Text", variable=self.input_type,
+                        command=self._sync_input_controls).pack(side="left")
+        ttk.Radiobutton(radios, text="Image", value="Image", variable=self.input_type,
+                        command=self._sync_input_controls).pack(side="left", padx=(10,0))
+
+        # Text box
+        self.text_input = tk.Text(left, height=6)
+        self.text_input.pack(fill="x", pady=(0,6))
+
+        # Image path row
+        img_row = ttk.Frame(left); img_row.pack(fill="x")
         ttk.Label(img_row, text="Image Path:").pack(side="left")
-        self.image_path_var = tk.StringVar()
-        self.image_entry = ttk.Entry(img_row, textvariable=self.image_path_var, width=60); self.image_entry.pack(side="left", padx=6)
-        ttk.Button(img_row, text="Browse…", command=self._on_browse_image).pack(side="left")
+        self.image_entry = ttk.Entry(img_row, textvariable=self.image_path_var, width=50)
+        self.image_entry.pack(side="left", padx=6)
+        ttk.Button(img_row, text="Browse", command=self._on_browse_image).pack(side="left")
 
-        ttk.Button(self, text="Run Selected Model", command=self._on_run).pack(pady=6)
+        # Run buttons (to mirror the sample “Run Model 1 / Run Model 2”)
+        run_row = ttk.Frame(left); run_row.pack(anchor="w", pady=(8,0))
+        ttk.Button(run_row, text="Run Model 1 (Text)", command=self._run_text).pack(side="left")
+        ttk.Button(run_row, text="Run Model 2 (Image)", command=self._run_image).pack(side="left", padx=8)
 
-        self.output_frame = ttk.LabelFrame(self, text="Output"); self.output_frame.pack(fill="both", expand=True, pady=4)
-        self.output_box = tk.Text(self.output_frame, height=14); self.output_box.pack(fill="both", expand=True, padx=8, pady=8)
+        # --- Right: Model Output Section
+        right = ttk.LabelFrame(middle, text="Model Output Section", padding=8)
+        right.pack(side="left", fill="both", expand=True, padx=(6,0))
+        self.output_box = tk.Text(right, height=14)
+        self.output_box.pack(fill="both", expand=True)
 
-        self.status_var = tk.StringVar(value="Ready")
+        # Bottom: Model Information & Explanation
+        info = ttk.LabelFrame(self, text="Model Information & Explanation", padding=8)
+        info.pack(fill="x", pady=(8,0))
+
+        # two columns inside info
+        left_info = ttk.Frame(info); left_info.pack(side="left", fill="x", expand=True, padx=(0,6))
+        right_info = ttk.Frame(info); right_info.pack(side="left", fill="x", expand=True, padx=(6,0))
+
+        ttk.Label(left_info, text="Selected Model Info", font=("", 10, "bold")).pack(anchor="w")
+        self.info_name = ttk.Label(left_info, text="Model: -"); self.info_name.pack(anchor="w")
+        self.info_cat  = ttk.Label(left_info, text="Category: -"); self.info_cat.pack(anchor="w")
+        self.info_desc = ttk.Label(left_info, text="Description: -", wraplength=420, justify="left")
+        self.info_desc.pack(anchor="w", pady=(0,4))
+
+        ttk.Label(right_info, text="OOP Concepts Explanation", font=("", 10, "bold")).pack(anchor="w")
+        oop_text = (
+            "• Multiple Inheritance: models mix ModelInfoMixin + ModelBase\n"
+            "• Encapsulation: private attrs like _pipe, _name, _task\n"
+            "• Polymorphism: all models expose run(input)\n"
+            "• Method Overriding: preprocess/postprocess hooks\n"
+            "• Multiple Decorators: @timed and @log_call on run()"
+        )
+        self.oop_label = ttk.Label(right_info, text=oop_text, justify="left", wraplength=420)
+        self.oop_label.pack(anchor="w")
+
         ttk.Label(self, textvariable=self.status_var, anchor="w").pack(fill="x", pady=(6,0))
-        self._hint("Tip: For Text Classification, type text above. For Image Classification, browse to an image file.")
+        self._sync_input_controls()
+
+    # ------------------- Actions -------------------
+    def _on_task_change(self):  # when dropdown changes
+        # sync input-type radio automatically
+        self.input_type.set("Text" if self.task_var.get() == "Text Classification" else "Image")
+        self._sync_input_controls()
+        self._update_model_info()
+        self._hint(f"Selected: {self.task_var.get()}")
+
+    def _on_load_model(self):
+        # For now we just refresh info; models are created in the controller
+        self._update_model_info()
+        self._hint("Model info loaded.")
 
     def _on_browse_image(self):
         path = filedialog.askopenfilename(
             title="Select an image",
             filetypes=[("Images", "*.png;*.jpg;*.jpeg;*.bmp;*.gif"), ("All files", "*.*")]
         )
-        if path: self.image_path_var.set(path)
+        if path:
+            self.image_path_var.set(path)
 
-    def _on_run(self):
-        task = self.task_var.get()
-        self._hint(f"Running: {task}…")
+    def _run_text(self):
+        text = self.text_input.get("1.0", "end").strip()
+        if not text:
+            messagebox.showwarning("Input required", "Please type some text.")
+            return
+        self._hint("Running Text model…")
         try:
-            if task == "Text Classification":
-                text = self.text_input.get("1.0", "end").strip()
-                if not text:
-                    messagebox.showwarning("Input required", "Please type some text."); return
-                result = self.controller.run_text(text)
-            else:
-                path = self.image_path_var.get().strip()
-                if not path:
-                    messagebox.showwarning("Input required", "Please select an image file."); return
-                result = self.controller.run_image(path)
-            self._display_output(result); self._hint("Done.")
+            result = self.controller.run_text(text)
+            self._display_output(result)
+            self._hint("Done.")
         except Exception as e:
-            messagebox.showerror("Error", str(e)); self._hint("Error occurred.")
+            messagebox.showerror("Error", str(e))
+            self._hint("Error occurred.")
+
+    def _run_image(self):
+        path = self.image_path_var.get().strip()
+        if not path:
+            messagebox.showwarning("Input required", "Please select an image file.")
+            return
+        self._hint("Running Image model…")
+        try:
+            result = self.controller.run_image(path)
+            self._display_output(result)
+            self._hint("Done.")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+            self._hint("Error occurred.")
 
     def _display_output(self, result_obj):
         self.output_box.delete("1.0", "end")
-        if isinstance(result_obj, dict):
-            self.output_box.insert("1.0", f"Result:\n{result_obj.get('result')}\n\nElapsed: {result_obj.get('elapsed_ms')} ms")
-        else:
-            self.output_box.insert("1.0", str(result_obj))
+        self.output_box.insert("1.0", f"Result:\n{result_obj.get('result')}\n\nElapsed: {result_obj.get('elapsed_ms', 0)} ms")
+
+    def _update_model_info(self):
+        info = self.controller.model_info(self.task_var.get())
+        self.info_name.config(text=f"Model: {info.get('name', '-')}")
+        self.info_cat.config(text=f"Category: {info.get('category', '-')}")
+        self.info_desc.config(text=f"Description: {info.get('description', '-')}")
+
+    def _sync_input_controls(self):
+        is_text = self.input_type.get() == "Text"
+        # enable/disable controls according to selected input type
+        self.text_input.config(state="normal" if is_text else "disabled")
+        self.image_entry.config(state="disabled" if is_text else "normal")
 
     def _on_clear(self):
-        self.text_input.delete("1.0", "end"); self.image_path_var.set(""); self.output_box.delete("1.0", "end")
+        self.text_input.config(state="normal")
+        self.text_input.delete("1.0", "end")
+        self.image_path_var.set("")
+        self.output_box.delete("1.0", "end")
         self._hint("Cleared.")
 
-    def _show_model_info(self):
-        msg = ("Selected Models (to be filled by Members 2 & 3):\n\n"
-               "• Text: DistilBERT SST-2 (Sentiment Analysis)\n"
-               "• Image: ViT Base Patch16-224 (Image Classification)\n\n"
-               "Each integrated via Hugging Face Transformers.")
-        messagebox.showinfo("Model Info", msg)
-
-    def _show_oop_info(self):
-        msg = ("OOP Concepts (explained in code & docs):\n"
-               "• Multiple Inheritance\n• Encapsulation (private attrs)\n"
-               "• Polymorphism (uniform run(input))\n"
-               "• Method Overriding (child run/pre/post)\n"
-               "• Multiple Decorators (@timed, @log_call)\n")
-        messagebox.showinfo("OOP Explanations", msg)
-
-    def _hint(self, text): self.status_var.set(text)
+    def _hint(self, msg): self.status_var.set(msg)
