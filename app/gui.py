@@ -9,7 +9,7 @@ class App(ttk.Frame):
         self.pack(fill="both", expand=True)
 
         self.task_var = tk.StringVar(value="Text Classification")
-        self.input_type = tk.StringVar(value="Text")   # radios in “User Input Section”
+        self.input_type = tk.StringVar(value="Text")
         self.image_path_var = tk.StringVar()
         self.status_var = tk.StringVar(value="Ready")
 
@@ -17,30 +17,37 @@ class App(ttk.Frame):
         self._build_layout()
         self._update_model_info()
 
-    # ------------------- UI -------------------
+    # ---------------- Menu ----------------
     def _build_menu(self):
         menubar = tk.Menu(self.master)
         self.master.config(menu=menubar)
         help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(label="About", command=lambda: messagebox.showinfo(
-            "About", "HIT137 Assignment 3 — Tkinter + Hugging Face"))
+        help_menu.add_command(
+            label="About",
+            command=lambda: messagebox.showinfo(
+                "About", "HIT137 Assignment 3 — Tkinter + Hugging Face"
+            ),
+        )
         menubar.add_cascade(label="Help", menu=help_menu)
 
+    # ------------- Layout (matches brief) -------------
     def _build_layout(self):
-        # Top: Model Selection row
+        # Top row: Model Selection + Load + Clear
         row = ttk.Frame(self); row.pack(fill="x", pady=(0,8))
         ttk.Label(row, text="Model Selection:").pack(side="left")
-        task_box = ttk.Combobox(row, textvariable=self.task_var, state="readonly",
-                                values=["Text Classification", "Image Classification"], width=22)
+        task_box = ttk.Combobox(
+            row, textvariable=self.task_var, state="readonly",
+            values=["Text Classification", "Image Classification"], width=22
+        )
         task_box.pack(side="left", padx=8)
         task_box.bind("<<ComboboxSelected>>", lambda e: self._on_task_change())
         ttk.Button(row, text="Load Model", command=self._on_load_model).pack(side="left", padx=(6,0))
         ttk.Button(row, text="Clear", command=self._on_clear).pack(side="right")
 
-        # Middle: two columns (User Input Section | Model Output Section)
+        # Middle: two columns
         middle = ttk.Frame(self); middle.pack(fill="both", expand=True)
 
-        # --- Left: User Input Section
+        # Left: User Input Section
         left = ttk.LabelFrame(middle, text="User Input Section", padding=8)
         left.pack(side="left", fill="both", expand=True, padx=(0,6))
 
@@ -50,23 +57,20 @@ class App(ttk.Frame):
         ttk.Radiobutton(radios, text="Image", value="Image", variable=self.input_type,
                         command=self._sync_input_controls).pack(side="left", padx=(10,0))
 
-        # Text box
         self.text_input = tk.Text(left, height=6)
         self.text_input.pack(fill="x", pady=(0,6))
 
-        # Image path row
         img_row = ttk.Frame(left); img_row.pack(fill="x")
         ttk.Label(img_row, text="Image Path:").pack(side="left")
         self.image_entry = ttk.Entry(img_row, textvariable=self.image_path_var, width=50)
         self.image_entry.pack(side="left", padx=6)
         ttk.Button(img_row, text="Browse", command=self._on_browse_image).pack(side="left")
 
-        # Run buttons (to mirror the sample “Run Model 1 / Run Model 2”)
         run_row = ttk.Frame(left); run_row.pack(anchor="w", pady=(8,0))
         ttk.Button(run_row, text="Run Model 1 (Text)", command=self._run_text).pack(side="left")
         ttk.Button(run_row, text="Run Model 2 (Image)", command=self._run_image).pack(side="left", padx=8)
 
-        # --- Right: Model Output Section
+        # Right: Model Output Section
         right = ttk.LabelFrame(middle, text="Model Output Section", padding=8)
         right.pack(side="left", fill="both", expand=True, padx=(6,0))
         self.output_box = tk.Text(right, height=14)
@@ -76,7 +80,6 @@ class App(ttk.Frame):
         info = ttk.LabelFrame(self, text="Model Information & Explanation", padding=8)
         info.pack(fill="x", pady=(8,0))
 
-        # two columns inside info
         left_info = ttk.Frame(info); left_info.pack(side="left", fill="x", expand=True, padx=(0,6))
         right_info = ttk.Frame(info); right_info.pack(side="left", fill="x", expand=True, padx=(6,0))
 
@@ -88,8 +91,8 @@ class App(ttk.Frame):
 
         ttk.Label(right_info, text="OOP Concepts Explanation", font=("", 10, "bold")).pack(anchor="w")
         oop_text = (
-            "• Multiple Inheritance: models mix ModelInfoMixin + ModelBase\n"
-            "• Encapsulation: private attrs like _pipe, _name, _task\n"
+            "• Multiple Inheritance: ModelInfoMixin + ModelBase\n"
+            "• Encapsulation: _pipe, _name, _task\n"
             "• Polymorphism: all models expose run(input)\n"
             "• Method Overriding: preprocess/postprocess hooks\n"
             "• Multiple Decorators: @timed and @log_call on run()"
@@ -100,16 +103,14 @@ class App(ttk.Frame):
         ttk.Label(self, textvariable=self.status_var, anchor="w").pack(fill="x", pady=(6,0))
         self._sync_input_controls()
 
-    # ------------------- Actions -------------------
-    def _on_task_change(self):  # when dropdown changes
-        # sync input-type radio automatically
+    # ---------------- Actions ----------------
+    def _on_task_change(self):
         self.input_type.set("Text" if self.task_var.get() == "Text Classification" else "Image")
         self._sync_input_controls()
         self._update_model_info()
         self._hint(f"Selected: {self.task_var.get()}")
 
     def _on_load_model(self):
-        # For now we just refresh info; models are created in the controller
         self._update_model_info()
         self._hint("Model info loaded.")
 
@@ -118,36 +119,29 @@ class App(ttk.Frame):
             title="Select an image",
             filetypes=[("Images", "*.png;*.jpg;*.jpeg;*.bmp;*.gif"), ("All files", "*.*")]
         )
-        if path:
-            self.image_path_var.set(path)
+        if path: self.image_path_var.set(path)
 
     def _run_text(self):
         text = self.text_input.get("1.0", "end").strip()
         if not text:
-            messagebox.showwarning("Input required", "Please type some text.")
-            return
+            messagebox.showwarning("Input required", "Please type some text."); return
         self._hint("Running Text model…")
         try:
             result = self.controller.run_text(text)
-            self._display_output(result)
-            self._hint("Done.")
+            self._display_output(result); self._hint("Done.")
         except Exception as e:
-            messagebox.showerror("Error", str(e))
-            self._hint("Error occurred.")
+            messagebox.showerror("Error", str(e)); self._hint("Error occurred.")
 
     def _run_image(self):
         path = self.image_path_var.get().strip()
         if not path:
-            messagebox.showwarning("Input required", "Please select an image file.")
-            return
+            messagebox.showwarning("Input required", "Please select an image file."); return
         self._hint("Running Image model…")
         try:
             result = self.controller.run_image(path)
-            self._display_output(result)
-            self._hint("Done.")
+            self._display_output(result); self._hint("Done.")
         except Exception as e:
-            messagebox.showerror("Error", str(e))
-            self._hint("Error occurred.")
+            messagebox.showerror("Error", str(e)); self._hint("Error occurred.")
 
     def _display_output(self, result_obj):
         self.output_box.delete("1.0", "end")
@@ -161,7 +155,6 @@ class App(ttk.Frame):
 
     def _sync_input_controls(self):
         is_text = self.input_type.get() == "Text"
-        # enable/disable controls according to selected input type
         self.text_input.config(state="normal" if is_text else "disabled")
         self.image_entry.config(state="disabled" if is_text else "normal")
 
