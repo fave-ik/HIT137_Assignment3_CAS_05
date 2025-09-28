@@ -143,26 +143,25 @@ class App(ttk.Frame):
         except Exception as e:
             messagebox.showerror("Error", str(e)); self._hint("Error occurred.")
 
-    def _display_output(self, result_obj):
-    self.output_box.delete("1.0", "end")
-    result = result_obj.get("result")
-    elapsed = result_obj.get("elapsed_ms", 0)
+   def _display_output(self, result_obj):
+        self.output_box.delete("1.0", "end")
+        result = result_obj.get("result")
+        elapsed = result_obj.get("elapsed_ms", 0)
 
-    lines = ["Result:"]
-    if isinstance(result, list) and result and isinstance(result[0], dict):
-        
-        for r in result[:5]:
-            lbl = r.get("label", "-")
-            scr = r.get("score", 0.0)
-            lines.append(f"{lbl}: {scr:.4f}")
-    elif isinstance(result, dict) and "label" in result:
-        lines.append(f"{result.get('label','-')}: {result.get('score',0.0):.4f}")
-    else:
-        lines.append(str(result))
+        lines = ["Result:"]
+        if isinstance(result, list) and result and isinstance(result[0], dict):
+            for r in result[:5]:
+                lbl = r.get("label", "-")
+                scr = r.get("score", 0.0)
+                lines.append(f"{lbl}: {scr:.4f}")
+        elif isinstance(result, dict) and "label" in result:
+            lines.append(f"{result.get('label','-')}: {result.get('score',0.0):.4f}")
+        else:
+            lines.append(str(result))
 
-    lines.append("")
-    lines.append(f"Elapsed: {elapsed} ms")
-    self.output_box.insert("1.0", "\n".join(lines))
+        lines.append("")
+        lines.append(f"Elapsed: {elapsed} ms")
+        self.output_box.insert("1.0", "\n".join(lines))
 
 
 
