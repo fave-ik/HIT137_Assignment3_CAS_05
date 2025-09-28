@@ -148,22 +148,22 @@ class App(ttk.Frame):
     result = result_obj.get("result")
     elapsed = result_obj.get("elapsed_ms", 0)
 
-    # formatting for common HF outputs
-    text_lines = ["Result:"]
+    lines = ["Result:"]
     if isinstance(result, list) and result and isinstance(result[0], dict):
-        # e.g. [{'label': 'POSITIVE', 'score': 0.99}, ...]
+        
         for r in result[:5]:
-            label = r.get("label", "-")
-            score = r.get("score", 0.0)
-            text_lines.append(f"{label}: {score:.4f}")
+            lbl = r.get("label", "-")
+            scr = r.get("score", 0.0)
+            lines.append(f"{lbl}: {scr:.4f}")
     elif isinstance(result, dict) and "label" in result:
-        text_lines.append(f"{result.get('label', '-')}: {result.get('score', 0.0):.4f}")
+        lines.append(f"{result.get('label','-')}: {result.get('score',0.0):.4f}")
     else:
-        text_lines.append(str(result))
+        lines.append(str(result))
 
-    text_lines.append("")
-    text_lines.append(f"Elapsed: {elapsed} ms")
-    self.output_box.insert("1.0", "\n".join(text_lines))
+    lines.append("")
+    lines.append(f"Elapsed: {elapsed} ms")
+    self.output_box.insert("1.0", "\n".join(lines))
+
 
 
     def _update_model_info(self):
