@@ -112,18 +112,38 @@ class App(ttk.Frame):
         self.info_desc = ttk.Label(left_info, text="Description: -", wraplength=420, justify="left")
         self.info_desc.pack(anchor="w", pady=(0, 4))
 
-        ttk.Label(right_info, text="OOP Concepts Explanation", font=("", 10, "bold")).pack(
-            anchor="w"
+                # --- OOP Concepts Explanation (scrollable panel) ---
+        ttk.Label(right_info, text="OOP Concepts Explanation", font=("", 10, "bold")).pack(anchor="w")
+        
+        explain = (
+            "Abstraction — WHERE: app/models_base.py -> ModelBase(ABC) with abstract run(x).\n"
+            "WHY: Forces every model to expose the same API so Controller/GUI can call models uniformly.\n\n"
+            "Multiple Inheritance — WHERE: app/model_text.py -> TextClassifier(ModelInfoMixin, ModelBase).\n"
+            "WHY: Combine shared interface (ModelBase) with reusable metadata (ModelInfoMixin) without duplication.\n\n"
+            "Encapsulation — WHERE: underscored attrs like _pipe, _name, _task in models; Controller exposes public methods.\n"
+            "WHY: Hide internal ML details so we can swap implementations without touching GUI code.\n\n"
+            "Polymorphism — WHERE: Controller.run_text()/run_image() call model.run(...) regardless of model type.\n"
+            "WHY: Same call works for different concrete models (text vs image); GUI doesn't care which model is behind it.\n\n"
+            "Method Overriding — WHERE: preprocess()/postprocess() hooks (see models_base.py) are overridden in models.\n"
+            "WHY: Let models customize I/O while keeping a common run flow.\n\n"
+            "Multiple Decorators — WHERE: @timed and @log_call wrap run(...) (see models_base.py and model_text.py).\n"
+            "WHY: Add timing/logging without changing core logic; GUI shows elapsed ms.\n\n"
+            "Separation of Concerns (MVC-ish) — WHERE: gui.py = View, controllers.py = Controller, model_*.py = Model.\n"
+            "WHY: Clear boundaries improve readability, testing, and teamwork.\n\n"
+            "Limitations — SST-2 is binary (no Neutral). Factual/neutral prompts may be predicted POS/NEG with lower confidence.\n"
+            "First run downloads caches; elapsed time measures pipeline time shown in the Output panel.\n"
         )
-        oop_text = (
-            "• Multiple Inheritance: ModelInfoMixin + ModelBase\n"
-            "• Encapsulation: _pipe, _name, _task\n"
-            "• Polymorphism: all models expose run(input)\n"
-            "• Method Overriding: preprocess/postprocess hooks\n"
-            "• Multiple Decorators: @timed and @log_call on run()"
-        )
-        self.oop_label = ttk.Label(right_info, text=oop_text, justify="left", wraplength=420)
-        self.oop_label.pack(anchor="w")
+        
+        oop_frame = ttk.Frame(right_info)
+        oop_frame.pack(fill="both", expand=True, pady=(4, 0))
+        oop_textbox = tk.Text(oop_frame, height=12, wrap="word")
+        oop_scroll = ttk.Scrollbar(oop_frame, command=oop_textbox.yview)
+        oop_textbox.configure(yscrollcommand=oop_scroll.set)
+        oop_textbox.insert("1.0", explain)
+        oop_textbox.config(state="disabled")
+        oop_textbox.pack(side="left", fill="both", expand=True)
+        oop_scroll.pack(side="right", fill="y")
+        # --- end OOP panel ---
 
         ttk.Label(self, textvariable=self.status_var, anchor="w").pack(fill="x", pady=(6, 0))
         self._sync_input_controls()
