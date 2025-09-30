@@ -1,43 +1,55 @@
 # app/controllers.py
+from __future__ import annotations
 
-try:
-    from .model_text import TextClassifier
-except Exception as e:
-    TextClassifier = None
-    _import_error = e
+from .model_text import TextClassifier
+from .model_image_caption import ImageCaptioner
+
 
 class Controller:
-    def __init__(self):
-        if TextClassifier is None:
-            raise RuntimeError(f"Failed to load TextClassifier: {_import_error}")
-        self.text_model = TextClassifier()
+    def __init__(self) -> None:
+        self.text_model = None
+        self.image_model = None
+        self._import_error = None
 
+        # Load text model (zero-shot)
+        try:
+            self.text_model = TextClassifier()
+        except Exception as e:
+            self._import_error = e
+
+        # Load image model (captioning)
+        try:
+            self.image_model = ImageCaptioner()
+        except Exception as e:
+            # keep first error if it exists; otherwise store this one
+            if self._import_error is None:
+                self._import_error = e
+
+    # ---------- Run methods ----------
     def run_text(self, text: str):
-        out = self.text_model.run(text)
-        # Normalize to {"result": ..., "elapsed_ms": ...}
-        if isinstance(out, tuple) and len(out) == 2:
-            result, elapsed_ms = out
-            return {"result": result, "elapsed_ms": elapsed_ms}
-        elif isinstance(out, dict) and ("result" in out or "elapsed_ms" in out):
-            return out
-        else:
-            return {"result": out, "elapsed_ms": 0}
+        if not self.text_model:
+            raise RuntimeError(f"Failed to load TextClassifier: {self._import_error}")
+        return self.text_model.run(text)
 
-    def run_image(self, image_path: str):
-        return {"result": f"[Dummy IMAGE output] {image_path}", "elapsed_ms": 0}
+    def run_image_caption(self, image_path: str):
+        if not self.image_model:
+            raise RuntimeError(f"Failed to load ImageCaptioner: {self._import_error}")
+        return self.image_model.run(image_path)
 
+    # ---------- Metadata for GUI panel ----------
     def model_info(self, task_name: str) -> dict:
-    if "Zero-shot" in task_name:
-        return {
-            "name": "BART-MNLI Zero-shot",
-            "category": "Text",
-            "description": "Classify arbitrary text into labels you provide at runtime "
-                           "using facebook/bart-large-mnli (zero-shot-classification).",
-        }
-    else:  # Image Captioning
-        return {
-            "name": "ViT-GPT2 Image Captioning",
-            "category": "Vision",
-            "description": "Generates a caption for an image using nlpconnect/vit-gpt2-image-captioning.",
-        }
-
+        """Return model metadata for the 'Selected Model Info' panel."""
+        if "Zero-shot" in task_name:
+            return {
+                "name": "BART-MNLI Zero-shot",
+                "category": "Text",
+                "description": "Classify arbitrary text into labels provided at runtime.",
+            }
+        elif "Caption" in task_name:
+            return {
+                "name": "ViT-GPT2 Image Captioning",
+                "category": "Vision",
+                "description": "Generates captions for images using ViT encoder + GPT-2 decoder.",
+            }
+        else:
+            return {"name": "-", "category": "-", "description": "-"}
