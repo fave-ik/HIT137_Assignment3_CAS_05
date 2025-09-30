@@ -183,41 +183,65 @@ class App(ttk.Frame):
             messagebox.showerror("Error", str(e))
             self._hint("Error occurred.")
 
-    # -------- Pretty output formatting --------
+    # -------- Pretty output formatting (robust) --------
     def _display_output(self, result_obj):
         self.output_box.delete("1.0", "end")
-        result = result_obj.get("result")
-        elapsed = result_obj.get("elapsed_ms", 0)
+
+        # Normalize carrier (tuple/dict/raw)
+        result = None
+        elapsed = 0
+
+        # A) (result, elapsed_ms)
+        if isinstance(result_obj, tuple) and len(result_obj) == 2:
+            result, elapsed = result_obj
+
+        # B) {"result": ..., "elapsed_ms": ...}
+        elif isinstance(result_obj, dict) and ("result" in result_obj or "elapsed_ms" in result_obj):
+            result = result_obj.get("result")
+            try:
+                elapsed = int(result_obj.get("elapsed_ms", 0))
+            except Exception:
+                elapsed = 0
+
+        # C) raw result
+        else:
+            result = result_obj
 
         lines = ["Result:"]
 
-        # 1) Captions (list of strings)
+        # 1) Image captioning: list[str]
         if isinstance(result, list) and result and isinstance(result[0], str):
             for s in result[:3]:
                 lines.append(f"- {s}")
 
-        # 2) Zero-shot common form (list of dicts with label/score)
+        # 2) Zero-shot: list[dict{"label","score"}]
         elif isinstance(result, list) and result and isinstance(result[0], dict):
-            for r in result[:5]:
-                lbl = r.get("label", "-")
-                scr = r.get("score", 0.0)
-                lines.append(f"{lbl}: {scr:.4f}")
+            if "label" in result[0] and "score" in result[0]:
+                for r in result[:5]:
+                    lbl = r.get("label", "-")
+                    scr = float(r.get("score", 0.0))
+                    lines.append(f"{lbl}: {scr:.4f}")
+            else:
+                for r in result[:5]:
+                    lines.append(str(r))
 
-        # 3) HF raw dict with arrays of labels/scores
+        # 3) Raw HF dict: {"labels":[...], "scores":[...]}
         elif isinstance(result, dict) and "labels" in result and "scores" in result:
             for lbl, scr in list(zip(result["labels"], result["scores"]))[:5]:
-                lines.append(f"{lbl}: {scr:.4f}")
+                lines.append(f"{lbl}: {float(scr):.4f}")
 
-        # 4) Single label/score dict
+        # 4) Single label dict
         elif isinstance(result, dict) and "label" in result:
-            lines.append(f"{result.get('label','-')}: {result.get('score', 0.0):.4f}")
+            lines.append(f"{result.get('label','-')}: {float(result.get('score', 0.0)):.4f}")
 
-        # 5) Fallback (show whatever it is)
+        # 5) Fallback
         else:
             lines.append(str(result))
 
-        lines.append("")
-        lines.append(f"Elapsed: {elapsed} ms")
+        if elapsed:
+            lines.append("")
+            lines.append(f"Elapsed: {elapsed} ms")
+
         self.output_box.insert("1.0", "\n".join(lines))
 
     # -------- Info + helpers --------
