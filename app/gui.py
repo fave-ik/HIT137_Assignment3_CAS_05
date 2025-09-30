@@ -48,6 +48,7 @@ class App(ttk.Frame):
             width=28,
         )
         task_box.pack(side="left", padx=8)
+        # when user changes the dropdown, refresh UI + model info
         task_box.bind("<<ComboboxSelected>>", lambda e: self._on_task_change())
 
         ttk.Button(row, text="Load Model", command=self._on_load_model).pack(
@@ -66,10 +67,12 @@ class App(ttk.Frame):
         radios = ttk.Frame(left)
         radios.pack(anchor="w", pady=(0, 6))
         ttk.Radiobutton(
-            radios, text="Text", value="Text", variable=self.input_type, command=self._sync_input_controls
+            radios, text="Text", value="Text", variable=self.input_type,
+            command=self._sync_input_controls
         ).pack(side="left")
         ttk.Radiobutton(
-            radios, text="Image", value="Image", variable=self.input_type, command=self._sync_input_controls
+            radios, text="Image", value="Image", variable=self.input_type,
+            command=self._sync_input_controls
         ).pack(side="left", padx=(10, 0))
 
         self.text_input = tk.Text(left, height=6)
@@ -124,13 +127,7 @@ class App(ttk.Frame):
             "• Multiple Decorators: @timed and @log_call wrap run() to log and measure elapsed ms\n"
             "• Separation of Concerns (MVC-ish): gui.py = View, controllers.py = Controller, model_*.py = Model"
         )
-
-        self.oop_label = ttk.Label(
-            right_info,
-            text=oop_text,
-            justify="left",
-            wraplength=480
-        )
+        self.oop_label = ttk.Label(right_info, text=oop_text, justify="left", wraplength=480)
         self.oop_label.pack(anchor="w")
         # --- end OOP panel ---
 
@@ -179,7 +176,6 @@ class App(ttk.Frame):
             return
         self._hint("Running Image model…")
         try:
-            # Only Image Captioning in this build
             result = self.controller.run_image_caption(path)
             self._display_output(result)
             self._hint("Done.")
