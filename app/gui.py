@@ -195,18 +195,28 @@ class App(ttk.Frame):
 
         lines = ["Result:"]
 
-        # Captions (list of strings)
+        # 1) Captions (list of strings)
         if isinstance(result, list) and result and isinstance(result[0], str):
             for s in result[:3]:
                 lines.append(f"- {s}")
 
-        # Zero-shot (list of dicts with label/score)
+        # 2) Zero-shot common form (list of dicts with label/score)
         elif isinstance(result, list) and result and isinstance(result[0], dict):
             for r in result[:5]:
                 lbl = r.get("label", "-")
                 scr = r.get("score", 0.0)
                 lines.append(f"{lbl}: {scr:.4f}")
 
+        # 3) HF raw dict with arrays of labels/scores
+        elif isinstance(result, dict) and "labels" in result and "scores" in result:
+            for lbl, scr in list(zip(result["labels"], result["scores"]))[:5]:
+                lines.append(f"{lbl}: {scr:.4f}")
+
+        # 4) Single label/score dict
+        elif isinstance(result, dict) and "label" in result:
+            lines.append(f"{result.get('label','-')}: {result.get('score', 0.0):.4f}")
+
+        # 5) Fallback (show whatever it is)
         else:
             lines.append(str(result))
 
