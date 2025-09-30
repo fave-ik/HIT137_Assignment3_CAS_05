@@ -1,46 +1,54 @@
+# app/models_base.py
 from abc import ABC, abstractmethod
 import time
 from functools import wraps
 
-# ---------- Decorators (multiple decorators requirement) ----------
 def timed(fn):
     @wraps(fn)
-    def wrapper(*args, **kwargs):
+    def wrapper(self, *args, **kwargs):
         t0 = time.time()
-        out = fn(*args, **kwargs)
-        elapsed_ms = int((time.time() - t0) * 1000)
-        # Normalize return shape for the GUI
-        if isinstance(out, dict) and "result" in out:
-            out["elapsed_ms"] = elapsed_ms
-            return out
-        return {"result": out, "elapsed_ms": elapsed_ms}
+        out = fn(self, *args, **kwargs)
+        return out, int((time.time() - t0) * 1000)
     return wrapper
 
 def log_call(fn):
     @wraps(fn)
-    def wrapper(*args, **kwargs):
-        cls = args[0].__class__.__name__ if args else fn.__name__
-        print(f"[LOG] {cls}.{fn.__name__} called")
-        return fn(*args, **kwargs)
+    def wrapper(self, *args, **kwargs):
+        
+        return fn(self, *args, **kwargs)
     return wrapper
 
-# ---------- Mixins / base classes ----------
 class ModelInfoMixin:
-    def describe(self):
-        return f"{getattr(self, '_name', 'Unknown')} — {getattr(self, '_task', 'Task')}"
+    def model_info(self):
+        return {
+            "name": getattr(self, "_name", "-"),
+            "category": getattr(self, "_category", "-"),
+            "description": getattr(self, "_description", "-"),
+        }
 
-class PrePostMixin:
-    # Overridable hooks (method overriding shown in child classes)
-    def preprocess(self, x): return x
-    def postprocess(self, y): return y
-
-class ModelBase(ABC, PrePostMixin):
-    """Abstract base for all models (encapsulation via underscored attrs)."""
-    def __init__(self, name: str, task: str):
-        self._name = name   # encapsulated attributes
+class ModelBase(ABC):
+    """
+    Base class all models inherit. Now accepts description for GUI.
+    """
+    def __init__(self, name: str, task: str, category: str, description: str = "-"):
+        self._name = name
         self._task = task
+        self._category = category
+        self._description = description
 
     @abstractmethod
+    def preprocess(self, x): ...
+
+    @abstractmethod
+    def _infer(self, x): ...
+
+    @abstractmethod
+    def postprocess(self, y): ...
+
+    @timed
+    @log_call
     def run(self, x):
-        """Run model on input x and return a dict with 'result' (polymorphic API)."""
-        raise NotImplementedError
+        x_p = self.preprocess(x)
+        y = self._infer(x_p)
+        out = self.postprocess(y)
+        return out
