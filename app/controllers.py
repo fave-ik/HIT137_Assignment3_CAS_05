@@ -26,5 +26,18 @@ class Controller:
     def run_image(self, image_path: str):
         return {"result": f"[Dummy IMAGE output] {image_path}", "elapsed_ms": 0}
 
-    def model_info(self, task: str):
-        return getattr(self.text_model, "info", lambda: {})()
+    def model_info(self, task_name: str) -> dict:
+    if "Zero-shot" in task_name:
+        return {
+            "name": "BART-MNLI Zero-shot",
+            "category": "Text",
+            "description": "Classify arbitrary text into labels you provide at runtime "
+                           "using facebook/bart-large-mnli (zero-shot-classification).",
+        }
+    else:  # Image Captioning
+        return {
+            "name": "ViT-GPT2 Image Captioning",
+            "category": "Vision",
+            "description": "Generates a caption for an image using nlpconnect/vit-gpt2-image-captioning.",
+        }
+
