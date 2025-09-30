@@ -4,8 +4,8 @@ from .models_base import ModelBase, ModelInfoMixin
 
 class TextClassifier(ModelInfoMixin, ModelBase):
     """
-    Zero-shot text classification (facebook/bart-large-mnli).
-    Pass {"text": "...", "labels": ["label1", "label2", ...]} to run().
+    Zero-shot text classification using facebook/bart-large-mnli.
+    Call run({"text": "...", "labels": ["a","b","c"]})
     """
     def __init__(self):
         super().__init__(
@@ -17,14 +17,14 @@ class TextClassifier(ModelInfoMixin, ModelBase):
         self._pipe = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
     def preprocess(self, x):
-        # x is a dict: {"text": str, "labels": List[str]}
+        # x is {"text": str, "labels": List[str]}
         return x
 
     def _infer(self, x):
         return self._pipe(x["text"], candidate_labels=x["labels"])
 
     def postprocess(self, y):
-        # Keep top-5 label/score pairs for the GUI
+        # Convert to a compact list of dicts (label, score)
         labels = y["labels"]
         scores = y["scores"]
         return [{"label": lbl, "score": float(scr)} for lbl, scr in zip(labels, scores)][:5]
