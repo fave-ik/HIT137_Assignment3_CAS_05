@@ -1,34 +1,30 @@
+# app/model_text.py
 from transformers import pipeline
-from .models_base import ModelBase, ModelInfoMixin, timed, log_call
-
-def _parse_labels(text: str):
-    # Allow a line like: labels: sports, tech, politics
-    lines = [ln.strip() for ln in text.splitlines()]
-    for ln in reversed(lines):
-        if ln.lower().startswith("labels:"):
-            raw = ln.split(":", 1)[1]
-            return [x.strip() for x in raw.split(",") if x.strip()]
-    # fallback labels if none provided
-    return ["sports", "tech", "politics", "finance"]
+from .models_base import ModelBase, ModelInfoMixin
 
 class TextClassifier(ModelInfoMixin, ModelBase):
-    """Zero-shot text classifier using BART-MNLI."""
-    def __init__(self, model_id: str = "facebook/bart-large-mnli"):
+    """
+    Zero-shot text classification (facebook/bart-large-mnli).
+    Pass {"text": "...", "labels": ["label1", "label2", ...]} to run().
+    """
+    def __init__(self):
         super().__init__(
             name="BART-MNLI Zero-shot",
             task="zero-shot-classification",
+            category="Text",
             description="Classify arbitrary text into labels provided at runtime."
         )
-        self._pipe = pipeline("zero-shot-classification", model=model_id)
+        self._pipe = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
-    @timed
-    @log_call
-    def run(self, text: str):
-        labels = _parse_labels(text)
-        # remove labels: line from the premise
-        premise = "\n".join(
-            ln for ln in text.splitlines() if not ln.lower().startswith("labels:")
-        ).strip() or text.strip()
-        out = self._pipe(premise, candidate_labels=labels, multi_label=False)
-        result = [{"label": l, "score": float(s)} for l, s in zip(out["labels"], out["scores"])]
-        return {"result": result}
+    def preprocess(self, x):
+        # x is a dict: {"text": str, "labels": List[str]}
+        return x
+
+    def _infer(self, x):
+        return self._pipe(x["text"], candidate_labels=x["labels"])
+
+    def postprocess(self, y):
+        # Keep top-5 label/score pairs for the GUI
+        labels = y["labels"]
+        scores = y["scores"]
+        return [{"label": lbl, "score": float(scr)} for lbl, scr in zip(labels, scores)][:5]
