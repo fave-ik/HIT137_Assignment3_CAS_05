@@ -5,38 +5,41 @@ except Exception as e:
     _text_import_error = e
 
 try:
-    from .model_image import ImageClassifier
+    from .model_image_caption import ImageCaptioner
 except Exception as e:
-    ImageClassifier = None
-    _image_import_error = e
-
-_MODEL_INFO = {
-    "Text Classification": {
-        "name": "DistilBERT SST-2",
-        "category": "Text",
-        "description": "Sentiment analysis model (POSITIVE/NEGATIVE) fine-tuned on SST-2.",
-    },
-    "Image Classification": {
-        "name": "ViT Base 16/224",
-        "category": "Vision",
-        "description": "Vision Transformer image classifier; returns top labels with scores.",
-    },
-}
+    ImageCaptioner = None
+    _cap_import_error = e
 
 class Controller:
     def __init__(self):
         if TextClassifier is None:
             raise RuntimeError(f"Failed to load TextClassifier: {_text_import_error}")
         self.text_model = TextClassifier()
-        self.image_model = ImageClassifier() if ImageClassifier else None
 
+        if ImageCaptioner is None:
+            raise RuntimeError(f"Failed to load ImageCaptioner: {_cap_import_error}")
+        self.caption_model = ImageCaptioner()
+
+    # ---- run methods ----
     def run_text(self, text: str):
         return self.text_model.run(text)
 
-    def run_image(self, image_path: str):
-        if self.image_model is None:
-            return {"result": f"[Image model pending] {image_path}", "elapsed_ms": 0}
-        return self.image_model.run(image_path)
+    def run_image_caption(self, image_path: str):
+        return self.caption_model.run(image_path)
 
+    # ---- info for GUI ----
     def model_info(self, task: str):
-        return _MODEL_INFO.get(task, {"name": "-", "category": "-", "description": "-"})
+        t = (task or "").lower()
+        if "text" in t:
+            return {
+                "name": self.text_model.name,
+                "category": "NLP (Zero-shot)",
+                "description": self.text_model.description
+            }
+        if "caption" in t:
+            return {
+                "name": self.caption_model.name,
+                "category": "Vision–Language",
+                "description": self.caption_model.description
+            }
+        return {"name": "-", "category": "-", "description": "-"}
