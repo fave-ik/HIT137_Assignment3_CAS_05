@@ -1,45 +1,43 @@
+# app/controllers.py
 try:
     from .model_text import TextClassifier
 except Exception as e:
     TextClassifier = None
-    _text_import_error = e
-
-try:
-    from .model_image_caption import ImageCaptioner
-except Exception as e:
-    ImageCaptioner = None
-    _cap_import_error = e
+    _import_error = e
 
 class Controller:
     def __init__(self):
         if TextClassifier is None:
-            raise RuntimeError(f"Failed to load TextClassifier: {_text_import_error}")
+            raise RuntimeError(f"Failed to load TextClassifier: {_import_error}")
         self.text_model = TextClassifier()
 
-        if ImageCaptioner is None:
-            raise RuntimeError(f"Failed to load ImageCaptioner: {_cap_import_error}")
-        self.caption_model = ImageCaptioner()
+    def run_text(self, raw_text: str):
+        """
+        Allows labels in the first line:
+        labels: tech, sports, politics
+        The rest of the textarea is the input text.
+        If not provided, we use a sensible default label set.
+        """
+        lines = [l for l in raw_text.splitlines() if l.strip()]
+        labels = None
 
-    # ---- run methods ----
-    def run_text(self, text: str):
-        return self.text_model.run(text)
+        if lines and lines[0].lower().startswith("labels:"):
+            # parse comma-separated labels
+            labels_str = lines[0].split(":", 1)[1]
+            labels = [s.strip() for s in labels_str.split(",") if s.strip()]
+            text = "\n".join(lines[1:]).strip()
+        else:
+            text = raw_text.strip()
 
-    def run_image_caption(self, image_path: str):
-        return self.caption_model.run(image_path)
+        if not labels:
+            labels = ["technology", "sports", "politics", "education", "entertainment"]
 
-    # ---- info for GUI ----
-    def model_info(self, task: str):
-        t = (task or "").lower()
-        if "text" in t:
-            return {
-                "name": self.text_model.name,
-                "category": "NLP (Zero-shot)",
-                "description": self.text_model.description
-            }
-        if "caption" in t:
-            return {
-                "name": self.caption_model.name,
-                "category": "Vision–Language",
-                "description": self.caption_model.description
-            }
-        return {"name": "-", "category": "-", "description": "-"}
+        return self.text_model.run({"text": text, "labels": labels})
+
+    # keep a dummy image path hook so GUI still runs even if someone clicks it
+    def run_image(self, image_path: str):
+        return {"result": [{"label": "[Image model not implemented in my part]", "score": 1.0}], "elapsed_ms": 0}
+
+    def model_info(self, task_name: str):
+        # We only have text implemented here
+        return self.text_model.model_info()
