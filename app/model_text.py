@@ -3,10 +3,16 @@ from transformers import pipeline
 from .models_base import ModelBase, ModelInfoMixin
 
 class TextClassifier(ModelInfoMixin, ModelBase):
-    """
-    Zero-shot text classification using facebook/bart-large-mnli.
-    Call run({"text": "...", "labels": ["a","b","c"]})
-    """
+    def run(self, text: str):
+    import time
+    t0 = time.time()
+    out = self._pipe(text, candidate_labels=self.LABELS)  # HF zero-shot output
+    elapsed = int((time.time() - t0) * 1000)
+
+    # Convert to list-of-dicts that GUI already knows: [{"label": ..., "score": ...}, ...]
+    ranked = [{"label": l, "score": s} for l, s in zip(out["labels"], out["scores"])]
+    return ranked, elapsed
+    
     def __init__(self):
         super().__init__(
             name="BART-MNLI Zero-shot",
