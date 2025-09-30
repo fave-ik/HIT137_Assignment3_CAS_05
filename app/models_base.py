@@ -4,7 +4,6 @@ import time
 from functools import wraps
 
 def timed(fn):
-    @wraps(fn)
     def wrapper(self, *args, **kwargs):
         t0 = time.time()
         out = fn(self, *args, **kwargs)
@@ -12,9 +11,7 @@ def timed(fn):
     return wrapper
 
 def log_call(fn):
-    @wraps(fn)
     def wrapper(self, *args, **kwargs):
-        
         return fn(self, *args, **kwargs)
     return wrapper
 
@@ -27,9 +24,7 @@ class ModelInfoMixin:
         }
 
 class ModelBase(ABC):
-    """
-    Base class all models inherit. Now accepts description for GUI.
-    """
+    """Common base for all models."""
     def __init__(self, name: str, task: str, category: str, description: str = "-"):
         self._name = name
         self._task = task
@@ -38,10 +33,8 @@ class ModelBase(ABC):
 
     @abstractmethod
     def preprocess(self, x): ...
-
     @abstractmethod
     def _infer(self, x): ...
-
     @abstractmethod
     def postprocess(self, y): ...
 
