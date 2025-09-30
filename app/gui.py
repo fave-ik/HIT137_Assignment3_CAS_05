@@ -10,7 +10,7 @@ class App(ttk.Frame):
         self.pack(fill="both", expand=True)
 
         # state
-        self.task_var = tk.StringVar(value="Text Classification")
+        self.task_var = tk.StringVar(value="Zero-shot Text Classification")
         self.input_type = tk.StringVar(value="Text")
         self.image_path_var = tk.StringVar()
         self.status_var = tk.StringVar(value="Ready")
@@ -44,8 +44,8 @@ class App(ttk.Frame):
             row,
             textvariable=self.task_var,
             state="readonly",
-            values=["Text Classification", "Image Classification"],
-            width=22,
+            values=["Zero-shot Text Classification", "Image Captioning"],
+            width=28,
         )
         task_box.pack(side="left", padx=8)
         task_box.bind("<<ComboboxSelected>>", lambda e: self._on_task_change())
@@ -109,26 +109,27 @@ class App(ttk.Frame):
         self.info_name.pack(anchor="w")
         self.info_cat = ttk.Label(left_info, text="Category: -")
         self.info_cat.pack(anchor="w")
-        self.info_desc = ttk.Label(left_info, text="Description: -", wraplength=420, justify="left")
+        self.info_desc = ttk.Label(left_info, text="Description: -", wraplength=480, justify="left")
         self.info_desc.pack(anchor="w", pady=(0, 4))
 
-                # --- OOP Concepts Explanation (scrollable panel) ---
+        # --- OOP Concepts Explanation (concise per brief) ---
         ttk.Label(right_info, text="OOP Concepts Explanation", font=("", 10, "bold")).pack(anchor="w")
 
         oop_text = (
-            "• Multiple Inheritance: model_text.TextClassifier / model_image.ImageClassifier "
+            "• Multiple Inheritance: model_text.TextClassifier / model_image_caption.ImageCaptioner "
             "inherit ModelInfoMixin and ModelBase\n"
             "• Encapsulation: private attrs (_pipe, _name, _task) in models; Controller exposes only public methods\n"
             "• Polymorphism: all models implement run(input); GUI/Controller call run() without caring which model\n"
             "• Method Overriding: preprocess()/postprocess() overridden in each concrete model\n"
             "• Multiple Decorators: @timed and @log_call wrap run() to log and measure elapsed ms\n"
+            "• Separation of Concerns (MVC-ish): gui.py = View, controllers.py = Controller, model_*.py = Model"
         )
-        
+
         self.oop_label = ttk.Label(
             right_info,
             text=oop_text,
             justify="left",
-            wraplength=420
+            wraplength=480
         )
         self.oop_label.pack(anchor="w")
         # --- end OOP panel ---
@@ -138,10 +139,12 @@ class App(ttk.Frame):
 
     # ---------------- Actions ----------------
     def _on_task_change(self):
-        self.input_type.set("Text" if self.task_var.get() == "Text Classification" else "Image")
+        task = self.task_var.get()
+        # Zero-shot uses Text; Captioning uses Image
+        self.input_type.set("Text" if "Text" in task else "Image")
         self._sync_input_controls()
         self._update_model_info()
-        self._hint(f"Selected: {self.task_var.get()}")
+        self._hint(f"Selected: {task}")
 
     def _on_load_model(self):
         self._update_model_info()
@@ -176,7 +179,8 @@ class App(ttk.Frame):
             return
         self._hint("Running Image model…")
         try:
-            result = self.controller.run_image(path)
+            # Only Image Captioning in this build
+            result = self.controller.run_image_caption(path)
             self._display_output(result)
             self._hint("Done.")
         except Exception as e:
@@ -190,14 +194,19 @@ class App(ttk.Frame):
         elapsed = result_obj.get("elapsed_ms", 0)
 
         lines = ["Result:"]
-        if isinstance(result, list) and result and isinstance(result[0], dict):
-            # e.g. [{'label': 'POSITIVE', 'score': 0.99}, ...]
+
+        # Captions (list of strings)
+        if isinstance(result, list) and result and isinstance(result[0], str):
+            for s in result[:3]:
+                lines.append(f"- {s}")
+
+        # Zero-shot (list of dicts with label/score)
+        elif isinstance(result, list) and result and isinstance(result[0], dict):
             for r in result[:5]:
                 lbl = r.get("label", "-")
                 scr = r.get("score", 0.0)
                 lines.append(f"{lbl}: {scr:.4f}")
-        elif isinstance(result, dict) and "label" in result:
-            lines.append(f"{result.get('label', '-')}: {result.get('score', 0.0):.4f}")
+
         else:
             lines.append(str(result))
 
