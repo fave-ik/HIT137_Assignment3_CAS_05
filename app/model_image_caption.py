@@ -4,37 +4,63 @@ from __future__ import annotations
 from PIL import Image
 from transformers import pipeline
 
-from .models_base import ModelBase
+from .models_base import ModelBase, ModelInfoMixin
 
 
-class ImageCaptioner(ModelBase):
+class ImageCaptioner(ModelInfoMixin, ModelBase):
     """
-    HF image-to-text pipeline (ViT-GPT2). Returns a list of captions.
-    Output format matches the GUI contract:
-        {"result": ["caption 1", "caption 2", ...], "elapsed_ms": <int>}
+    ViT-GPT2 image captioning using the HF 'image-to-text' pipeline.
+    Compatible with older transformers that don't support num_return_sequences.
     """
 
     def __init__(self) -> None:
         super().__init__(
             name="ViT-GPT2 Image Captioning",
-            task="image-to-text",
             category="Vision",
+            task="image-captioning",
             description="Generates captions for images using ViT encoder + GPT-2 decoder.",
         )
-        # Lazy / simple HF pipeline
-        self._pipe = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning")
+        # Create the pipeline once
+        self._pipe = pipeline(
+            task="image-to-text",
+            model="nlpconnect/vit-gpt2-image-captioning",
+        )
 
-    # ---- Required abstract methods from ModelBase ----
-    def preprocess(self, image_path: str) -> Image.Image:
-        # PIL image (RGB) works directly with the pipeline
-        return Image.open(image_path).convert("RGB")
+    # ------------- required abstract methods -------------
 
-    def _infer(self, img: Image.Image):
-        # Return 1–3 candidate captions
-        return self._pipe(img, max_new_tokens=32, num_return_sequences=3)
+    def preprocess(self, image_path: str):
+        """Open image and return a PIL.Image"""
+        img = Image.open(image_path).convert("RGB")
+        return img
 
-    def postprocess(self, raw) -> list[str]:
-        # raw looks like: [{"generated_text": "a brown dog..."}, ...]
-        if not raw:
-            return []
-        return [r.get("generated_text", "").strip() for r in raw if r.get("generated_text")]
+    def _infer(self, pil_image):
+        """
+        Run the pipeline. Don't pass num_return_sequences (not supported
+        in some versions). Keep it simple and fast.
+        """
+        # Common args that are widely supported:
+        outputs = self._pipe(pil_image, max_new_tokens=20)
+        return outputs
+
+    def postprocess(self, raw_outputs):
+        """
+        Normalize pipeline outputs into a list[str] of captions.
+        HF may return:
+          - [{'generated_text': '...'}]
+          - {'generated_text': '...'}
+        """
+        captions: list[str] = []
+
+        if isinstance(raw_outputs, list):
+            for item in raw_outputs:
+                if isinstance(item, dict) and "generated_text" in item:
+                    captions.append(item["generated_text"])
+                else:
+                    captions.append(str(item))
+        elif isinstance(raw_outputs, dict) and "generated_text" in raw_outputs:
+            captions.append(raw_outputs["generated_text"])
+        else:
+            captions.append(str(raw_outputs))
+
+        # Return the normalized result the GUI expects
+        return captions
