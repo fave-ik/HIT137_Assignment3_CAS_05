@@ -20,13 +20,13 @@ class ImageCaptioner(ModelInfoMixin, ModelBase):
             task="image-captioning",
             description="Generates captions for images using ViT encoder + GPT-2 decoder.",
         )
-        # Create the pipeline once
+        # Create the pipeline 
         self._pipe = pipeline(
             task="image-to-text",
             model="nlpconnect/vit-gpt2-image-captioning",
         )
 
-    # ------------- required abstract methods -------------
+    # required abstract methods 
 
     def preprocess(self, image_path: str):
         """Open image and return a PIL.Image"""
