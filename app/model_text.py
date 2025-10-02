@@ -22,7 +22,7 @@ class TextClassifier(ModelInfoMixin, ModelBase):
         self,
         candidate_labels: List[str] | None = None,
     ) -> None:
-        # ---- metadata for the GUI ----
+        # metadata for the GUI
         super().__init__(
             name="BART-MNLI Zero-shot",
             category="Text",
@@ -30,7 +30,7 @@ class TextClassifier(ModelInfoMixin, ModelBase):
             description="Classify arbitrary text into labels provided at runtime.",
         )
 
-        # store labels (can be changed later if you add a UI for it)
+        # store labels
         self._labels = candidate_labels or DEFAULT_LABELS
 
         # build HF pipeline (CPU by default: device=-1)
@@ -44,7 +44,7 @@ class TextClassifier(ModelInfoMixin, ModelBase):
             # bubble a clear error up to the GUI
             raise RuntimeError(f"Failed to load zero-shot pipeline: {e}") from e
 
-    # --------- required ModelBase hooks ---------
+    # required ModelBase hooks
 
     def preprocess(self, text: str) -> str:
         """Basic cleaning/validation for input text."""
@@ -71,7 +71,7 @@ class TextClassifier(ModelInfoMixin, ModelBase):
 
         # Case 2: already a list of dicts
         if isinstance(raw_result, list) and raw_result and isinstance(raw_result[0], dict):
-            # ensure label/score keys exist and sort
+            # label/score keys exist and sort
             cleaned = [
                 {"label": d.get("label", "-"), "score": float(d.get("score", 0.0))}
                 for d in raw_result
@@ -79,5 +79,5 @@ class TextClassifier(ModelInfoMixin, ModelBase):
             cleaned.sort(key=lambda x: x["score"], reverse=True)
             return cleaned
 
-        # Fallback: wrap anything else so GUI can still display something
+        # Fallback:
         return [{"label": "output", "score": 0.0}, {"label": str(raw_result), "score": 0.0}]
