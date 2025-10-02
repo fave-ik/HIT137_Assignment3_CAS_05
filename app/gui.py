@@ -126,50 +126,9 @@ class App(ttk.Frame):
             "• Method Overriding: preprocess()/postprocess() overridden in each concrete model\n"
             "• Multiple Decorators: @timed and @log_call wrap run() to log and measure elapsed ms\n"
             "• Separation of Concerns (MVC-ish): gui.py = View, controllers.py = Controller, model_*.py = Model"
-
-            
         )
         self.oop_label = ttk.Label(right_info, text=oop_text, justify="left", wraplength=480)
         self.oop_label.pack(anchor="w")
-
-        oop_text = (
-
-)oop_text = (
-"1) Encapsulation\n"
-"In models_base.py, the AIModule class keeps __model_name as private and _pipeline as protected. "
-"This means other parts of the program cannot directly change these variables. "
-"The reason we use encapsulation is to hide the details of how the model is stored and only give "
-"safe access through methods and properties. This keeps the program more reliable.\n\n"
-
-"2) Polymorphism\n"
-"In model_text.py (SentimentModel) and model_image_caption.py (ImageClassifierModel), both classes "
-"inherit from AIModule. Each class has its own version of run(), but the controller can call "
-"model.run(input) the same way for both. This shows polymorphism, because different models respond "
-"to the same method name in their own way. It makes the program flexible and easy to extend.\n\n"
-
-"3) Method Overriding\n"
-"In the subclasses, methods like get_display_name() and _do_load() are overridden. "
-"For example, the text model loads a text pipeline, while the image model loads an image pipeline. "
-"Overriding is used here so each subclass can change behaviour without rewriting everything from scratch.\n\n"
-
-"4) Multiple Inheritance\n"
-"Each model inherits from both AIModule and LoggingMixin. "
-"This means one class can get features from two different parent classes. "
-"The benefit of this is that we can reuse logging code from LoggingMixin, while still keeping the main "
-"AI model structure from AIModule. This avoids repeating the same code in every model.\n\n"
-
-"5) Multiple Decorators\n"
-"In models_base.py, the run() method is wrapped with two decorators: @timed and @catch_errors. "
-"The @timed decorator records how long the function takes, and @catch_errors makes sure the program "
-"does not crash if there is an error. This is a clean way to add extra features without changing the "
-"main function code.\n\n"
-
-"Other Notes:\n"
-"Our project also follows a basic MVC structure: gui.py is the View, controllers.py is the Controller, "
-"and the model_*.py files are the Models. We used two Hugging Face models: DistilBERT for text classification "
-"and ViT for image classification.\n"
-)
-
         # --- end OOP panel ---
 
         ttk.Label(self, textvariable=self.status_var, anchor="w").pack(fill="x", pady=(6, 0))
@@ -306,5 +265,3 @@ class App(ttk.Frame):
 
     def _hint(self, msg):
         self.status_var.set(msg)
-
-
